@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}等待审核 - {{ PLATFORM_NAME }}{% endblock %}
+{% block content %}
+<div class="empty-state">
+  <h2>账号待审核</h2>
+  <p>你的注册申请已提交，请耐心等待管理员审核通过。</p>
+  <p>审核通过后即可登录使用平台。</p>
+  <p style="margin-top:16px"><a href="{{ url_for('login') }}" class="btn btn-primary">返回登录</a></p>
+</div>
+{% endblock %}

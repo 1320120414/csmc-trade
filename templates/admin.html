@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}管理后台 - {{ PLATFORM_NAME }}{% endblock %}
+{% block content %}
+
+<div class="tab-bar">
+  <a href="{{ url_for('admin', tab='pending') }}" class="{{ 'active' if tab == 'pending' }}">待审核用户</a>
+  <a href="{{ url_for('admin', tab='all') }}" class="{{ 'active' if tab == 'all' }}">全部用户</a>
+</div>
+
+{% if tab == 'pending' %}
+  <!-- 待审核用户 -->
+  <h3 class="section-title">待审核注册申请</h3>
+  {% if users %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>游戏ID</th><th>QQ号</th><th>注册时间</th><th>操作</th></tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td>{{ u.game_id }}</td>
+          <td>{{ u.qq }}</td>
+          <td>{{ u.created_at.strftime('%Y-%m-%d %H:%M') if u.created_at }}</td>
+          <td>
+            <div class="action-group">
+              <form class="inline-form" method="post" action="{{ url_for('admin_approve', user_id=u.id) }}">
+                <button type="submit" class="btn btn-success btn-sm">通过</button>
+              </form>
+              <form class="inline-form" method="post" action="{{ url_for('admin_reject', user_id=u.id) }}">
+                <button type="submit" class="btn btn-danger btn-sm">拒绝</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state"><h2>暂无待审核申请</h2></div>
+  {% endif %}
+
+{% elif tab == 'all' %}
+  <!-- 全部用户 -->
+  <h3 class="section-title">全部用户 ({{ users|length }})</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>游戏ID</th><th>QQ号</th><th>角色</th><th>状态</th><th>注册时间</th><th>操作</th></tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td>{{ u.game_id }}</td>
+          <td>{{ u.qq }}</td>
+          <td>{{ '管理员' if u.role == 'admin' else '用户' }}</td>
+          <td>
+            <span class="status-badge status-{{ {'pending':'removed','approved':'listing','rejected':'removed','banned':'removed'}[u.status] if u.status in ['pending','approved','rejected','banned'] else 'removed' }}">
+              {{ {'pending':'待审核','approved':'正常','rejected':'已拒绝','banned':'已封禁'}[u.status] }}
+            </span>
+          </td>
+          <td>{{ u.created_at.strftime('%Y-%m-%d') if u.created_at }}</td>
+          <td>
+            <div class="action-group">
+              {% if u.role != 'admin' %}
+                {% if u.status == 'banned' %}
+                <form class="inline-form" method="post" action="{{ url_for('admin_unban', user_id=u.id) }}">
+                  <button type="submit" class="btn btn-ghost btn-sm">解封</button>
+                </form>
+                {% else %}
+                <form class="inline-form" method="post" action="{{ url_for('admin_ban', user_id=u.id) }}" onsubmit="return confirm('确定封禁？')">
+                  <button type="submit" class="btn btn-danger btn-sm">封禁</button>
+                </form>
+                {% endif %}
+                <form class="inline-form" method="post" action="{{ url_for('admin_set_admin', user_id=u.id) }}">
+                  <button type="submit" class="btn btn-ghost btn-sm">设为管理员</button>
+                </form>
+                <!-- 重置密码 -->
+                <form class="inline-form" method="post" action="{{ url_for('admin_reset_password', user_id=u.id) }}" onsubmit="return confirm('确定重置该用户密码？')">
+                  <input type="text" name="new_password" placeholder="新密码" required minlength="6">
+                  <button type="submit" class="btn btn-warning btn-sm">重置密码</button>
+                </form>
+              {% else %}
+                <span style="color:var(--text-small)">—</span>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 最近交易 -->
+  <h3 class="section-title" style="margin-top:32px;">最近交易记录</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>饰品</th><th>发布者</th><th>QQ</th><th>售价</th><th>状态</th><th>时间</th><th>操作</th></tr>
+      </thead>
+      <tbody>
+        {% for t in trades %}
+        <tr>
+          <td><a href="{{ url_for('detail', trade_id=t.id) }}">{{ t.item_name }}</a></td>
+          <td>{{ t.game_id }}</td>
+          <td>{{ t.qq }}</td>
+          <td>{{ '%.2f'|format(t.market_price) }}</td>
+          <td><span class="status-badge status-{{ t.status }}">{{ {'listing':'上架中','done':'已完成','removed':'已下架'}[t.status] }}</span></td>
+          <td>{{ t.created_at.strftime('%Y-%m-%d %H:%M') if t.created_at }}</td>
+          <td>
+            {% if t.status == 'listing' %}
+            <form class="inline-form" method="post" action="{{ url_for('admin_remove_trade', trade_id=t.id) }}" onsubmit="return confirm('确定下架？')">
+              <button type="submit" class="btn btn-warning btn-sm">下架</button>
+            </form>
+            {% else %}
+            <span style="color:var(--text-small)">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endif %}
+
+{% endblock %}

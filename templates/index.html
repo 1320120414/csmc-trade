@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}交易大厅 - {{ PLATFORM_NAME }}{% endblock %}
+{% block content %}
+
+<!-- 筛选栏 -->
+<form class="filter-bar" method="get" action="{{ url_for('index') }}">
+  <div class="filter-row">
+    <div class="filter-group" style="flex:1; min-width:200px">
+      <label>搜索饰品名</label>
+      <input type="text" name="q" value="{{ filters.q }}" placeholder="输入饰品名字关键词">
+    </div>
+    <div class="filter-group">
+      <label>排序</label>
+      <select name="sort">
+        <option value="newest" {{ 'selected' if filters.sort == 'newest' }}>最新发布</option>
+        <option value="price_asc" {{ 'selected' if filters.sort == 'price_asc' }}>价格从低到高</option>
+        <option value="price_desc" {{ 'selected' if filters.sort == 'price_desc' }}>价格从高到低</option>
+        <option value="wear_asc" {{ 'selected' if filters.sort == 'wear_asc' }}>磨损从低到高</option>
+        <option value="wear_desc" {{ 'selected' if filters.sort == 'wear_desc' }}>磨损从高到低</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="filter-row">
+    <div class="filter-group">
+      <label>交易目的</label>
+      <div class="checkbox-row">
+        {% for p in PURPOSE_OPTIONS %}
+        <label><input type="checkbox" name="purpose" value="{{ p }}" {{ 'checked' if p in filters.purpose }}> {{ p }}</label>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="filter-group">
+      <label>接受的货币</label>
+      <div class="checkbox-row">
+        {% for c in CURRENCY_OPTIONS %}
+        <label><input type="checkbox" name="currency" value="{{ c }}" {{ 'checked' if c in filters.currency }}> {{ c }}</label>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="filter-row">
+    <div class="filter-group">
+      <label>StatTrak</label>
+      <select name="stattrak">
+        <option value="" {{ 'selected' if not filters.stattrak }}>全部</option>
+        <option value="1" {{ 'selected' if filters.stattrak == '1' }}>是</option>
+        <option value="0" {{ 'selected' if filters.stattrak == '0' }}>否</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>磨损范围</label>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <input type="number" class="input input-sm" name="wear_min" value="{{ filters.wear_min }}" placeholder="最低" step="0.000001" min="0" max="1">
+        <span style="color:var(--text-small)">~</span>
+        <input type="number" class="input input-sm" name="wear_max" value="{{ filters.wear_max }}" placeholder="最高" step="0.000001" min="0" max="1">
+      </div>
+    </div>
+    <div class="filter-group">
+      <label>&nbsp;</label>
+      <div style="display:flex; gap:8px;">
+        <button type="submit" class="btn btn-primary btn-sm">筛选</button>
+        <a href="{{ url_for('index') }}" class="btn btn-ghost btn-sm">重置</a>
+      </div>
+    </div>
+  </div>
+</form>
+
+<!-- 交易卡片网格 -->
+{% if trades %}
+<div class="trade-grid">
+  {% for t in trades %}
+  <a href="{{ url_for('detail', trade_id=t.id) }}" class="trade-card" style="text-decoration:none; color:inherit;">
+    <div class="card-user">
+      <span class="card-game-id">{{ t.game_id }}</span>
+      <span class="card-qq">QQ: {{ t.qq }}</span>
+    </div>
+    <div class="card-item">
+      {{ t.item_name }}
+      {% if t.stattrak %}<span class="stattrak-tag">StatTrak™</span>{% endif %}
+    </div>
+    <div class="card-purpose">
+      {% for p in t.purpose_list() %}
+      <span class="tag tag-purpose-{{ p }}">{{ p }}</span>
+      {% endfor %}
+    </div>
+    <div class="card-wear">磨损：{{ t.wear_str() }}</div>
+    <div class="card-price">
+      <span class="price">{{ '%.2f' % t.market_price }}</span>
+      <span class="currency">{{ t.currency_list() | join(' / ') }}</span>
+    </div>
+    <div class="card-expected">心理预期：{{ t.expected_price }}</div>
+  </a>
+  {% endfor %}
+</div>
+
+<!-- 分页 -->
+{% if pagination.pages > 1 %}
+<div class="pagination">
+  {% if pagination.has_prev %}
+  <a href="{{ url_for('index', page=pagination.prev_num, **request.args) }}">上一页</a>
+  {% else %}
+  <span class="disabled">上一页</span>
+  {% endif %}
+  {% for p in range(1, pagination.pages + 1) %}
+    {% if p == pagination.page %}
+    <span class="current">{{ p }}</span>
+    {% else %}
+    <a href="{{ url_for('index', page=p, **request.args) }}">{{ p }}</a>
+    {% endif %}
+  {% endfor %}
+  {% if pagination.has_next %}
+  <a href="{{ url_for('index', page=pagination.next_num, **request.args) }}">下一页</a>
+  {% else %}
+  <span class="disabled">下一页</span>
+  {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="empty-state">
+  <h2>暂无上架交易</h2>
+  <p>还没有人发布交易，来当第一个吧</p>
+  {% if current_user and current_user.status == 'approved' %}
+  <p style="margin-top:16px"><a href="{{ url_for('publish') }}" class="btn btn-primary">发布交易</a></p>
+  {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}

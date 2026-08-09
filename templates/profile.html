@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}个人中心 - {{ PLATFORM_NAME }}{% endblock %}
+{% block content %}
+
+<!-- 个人信息 -->
+<div class="profile-header">
+  <div class="profile-info">
+    <span class="game-id">{{ user.game_id }}</span>
+    <span class="qq">QQ: {{ user.qq }}</span>
+    <span class="qq">注册时间: {{ user.created_at.strftime('%Y-%m-%d') if user.created_at }}</span>
+    {% if user.role == 'admin' %}<span class="role-tag">管理员</span>{% endif %}
+  </div>
+  <div style="display:flex; gap:8px; flex-wrap:wrap;">
+    <a href="{{ url_for('publish') }}" class="btn btn-primary">发布交易</a>
+    <button class="btn btn-ghost" onclick="document.getElementById('pwdForm').style.display='block'">修改密码</button>
+  </div>
+</div>
+
+<!-- 修改密码表单 -->
+<form id="pwdForm" method="post" action="{{ url_for('change_password') }}"
+      style="display:none; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:20px; margin-bottom:20px; max-width:420px;">
+  <h3 style="margin-bottom:14px;">修改密码</h3>
+  <div class="form-group">
+    <label>原密码</label>
+    <input type="password" name="old_password" required>
+  </div>
+  <div class="form-group">
+    <label>新密码（至少6位）</label>
+    <input type="password" name="new_password" required minlength="6">
+  </div>
+  <div class="form-group">
+    <label>确认新密码</label>
+    <input type="password" name="new_password2" required minlength="6">
+  </div>
+  <div style="display:flex; gap:8px;">
+    <button type="submit" class="btn btn-primary btn-sm">确认修改</button>
+    <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('pwdForm').style.display='none'">取消</button>
+  </div>
+</form>
+
+<!-- 我的上架交易 -->
+<h3 class="section-title">上架中 ({{ my_listings|length }})</h3>
+{% if my_listings %}
+  {% for t in my_listings %}
+  <div class="trade-list-item">
+    <div class="info">
+      <a href="{{ url_for('detail', trade_id=t.id) }}" class="name">{{ t.item_name }}{% if t.stattrak %} <span class="stattrak-tag">StatTrak™</span>{% endif %}</a>
+      <div class="meta">
+        {% for p in t.purpose_list() %}<span class="tag tag-purpose-{{ p }}">{{ p }}</span> {% endfor %}
+        磨损 {{ t.wear_str() }} · 售价 {{ '%.2f'|format(t.market_price) }} · {{ t.currency_list()|join('/') }} · {{ t.created_at }}
+      </div>
+    </div>
+    <div class="actions">
+      <a href="{{ url_for('edit_trade', trade_id=t.id) }}" class="btn btn-ghost btn-sm">编辑</a>
+      <a href="{{ url_for('detail', trade_id=t.id) }}" class="btn btn-ghost btn-sm">详情</a>
+      <form class="inline-form" method="post" action="{{ url_for('remove_trade', trade_id=t.id) }}" onsubmit="return confirm('确定下架？')">
+        <button type="submit" class="btn btn-warning btn-sm">下架</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+{% else %}
+  <div class="empty-state" style="padding:24px;"><p>暂无上架中的交易</p></div>
+{% endif %}
+
+<!-- 已完成交易 -->
+<h3 class="section-title">已完成 ({{ my_done|length }})</h3>
+{% if my_done %}
+  {% for t in my_done %}
+  <div class="trade-list-item">
+    <div class="info">
+      <a href="{{ url_for('detail', trade_id=t.id) }}" class="name">{{ t.item_name }}{% if t.stattrak %} <span class="stattrak-tag">StatTrak™</span>{% endif %}</a>
+      <div class="meta">
+        售价 {{ '%.2f'|format(t.market_price) }} · {{ t.currency_list()|join('/') }}
+        {% if t.deal_price %} · 成交 {{ t.deal_price }}{% endif %}
+        {% if t.buyer_game_id %} · 买家 {{ t.buyer_game_id }}{% endif %}
+        · 完成于 {{ t.completed_at }}
+      </div>
+    </div>
+    <div class="actions">
+      <a href="{{ url_for('detail', trade_id=t.id) }}" class="btn btn-ghost btn-sm">详情</a>
+    </div>
+  </div>
+  {% endfor %}
+{% else %}
+  <div class="empty-state" style="padding:24px;"><p>暂无已完成的交易</p></div>
+{% endif %}
+
+<!-- 已下架交易 -->
+{% if my_removed %}
+<h3 class="section-title">已下架 ({{ my_removed|length }})</h3>
+  {% for t in my_removed %}
+  <div class="trade-list-item">
+    <div class="info">
+      <span class="name" style="color:var(--text-dim);">{{ t.item_name }}</span>
+      <div class="meta">{{ t.created_at }}</div>
+    </div>
+    <div class="actions">
+      <form class="inline-form" method="post" action="{{ url_for('delete_trade', trade_id=t.id) }}" onsubmit="return confirm('确定删除？不可恢复')">
+        <button type="submit" class="btn btn-danger btn-sm">删除</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+{% endif %}
+
+{% endblock %}

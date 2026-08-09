@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}{{ trade.item_name }} - {{ PLATFORM_NAME }}{% endblock %}
+{% block content %}
+<div class="detail-card">
+  <h1>
+    {{ trade.item_name }}
+    {% if trade.stattrak %}<span class="stattrak-tag">StatTrak™</span>{% endif %}
+  </h1>
+
+  <div class="detail-row">
+    <span class="label">发布者</span>
+    <span class="value">
+      <strong>{{ trade.game_id }}</strong>
+      <span style="color:var(--text-small); font-size:13px; margin-left:8px">QQ: {{ trade.qq }}</span>
+    </span>
+  </div>
+
+  <div class="detail-row">
+    <span class="label">交易目的</span>
+    <span class="value">
+      {% for p in trade.purpose_list() %}
+      <span class="tag tag-purpose-{{ p }}">{{ p }}</span>
+      {% endfor %}
+    </span>
+  </div>
+
+  <div class="detail-row">
+    <span class="label">StatTrak™</span>
+    <span class="value">{{ '是' if trade.stattrak else '否' }}</span>
+  </div>
+
+  <div class="detail-row">
+    <span class="label">磨损</span>
+    <span class="value">{{ trade.wear_str() }}</span>
+  </div>
+
+  <div class="detail-row">
+    <span class="label">市场建议售价</span>
+    <span class="value" style="color:var(--success); font-weight:700; font-size:18px">{{ '%.2f' % trade.market_price }}</span>
+  </div>
+
+  <div class="detail-row">
+    <span class="label">接受的货币</span>
+    <span class="value">
+      {% for c in trade.currency_list() %}<span class="tag">{{ c }}</span> {% endfor %}
+    </span>
+  </div>
+
+  <div class="detail-row">
+    <span class="label">心理预期价格</span>
+    <span class="value">{{ trade.expected_price }}</span>
+  </div>
+
+  {% if trade.description %}
+  <div class="detail-row">
+    <span class="label">补充描述</span>
+    <span class="value" style="white-space:pre-wrap">{{ trade.description }}</span>
+  </div>
+  {% endif %}
+
+  <div class="detail-row">
+    <span class="label">发布时间</span>
+    <span class="value">{{ trade.created_at }}</span>
+  </div>
+
+  <div class="detail-row">
+    <span class="label">状态</span>
+    <span class="value"><span class="status-badge status-{{ trade.status }}">{{ {'listing':'上架中','done':'已完成','removed':'已下架'}[trade.status] }}</span></span>
+  </div>
+
+  {% if trade.status == 'done' %}
+  <div class="detail-row">
+    <span class="label">完成时间</span>
+    <span class="value">{{ trade.completed_at }}</span>
+  </div>
+  {% if trade.buyer_game_id %}
+  <div class="detail-row">
+    <span class="label">买家游戏ID</span>
+    <span class="value">{{ trade.buyer_game_id }}</span>
+  </div>
+  {% endif %}
+  {% if trade.deal_price %}
+  <div class="detail-row">
+    <span class="label">成交价</span>
+    <span class="value">{{ trade.deal_price }}</span>
+  </div>
+  {% endif %}
+  {% endif %}
+
+  <!-- 操作按钮 -->
+  <div class="detail-actions">
+    {% if trade.status == 'listing' %}
+    <button class="btn btn-primary" data-copy-qq="{{ trade.qq }}">复制 QQ 号</button>
+    <button class="btn btn-ghost" onclick="openQQChat('{{ trade.qq }}')">发起 QQ 会话</button>
+    {% endif %}
+
+    {% if current_user and trade.user_id == current_user.id and trade.status == 'listing' %}
+    <a href="{{ url_for('edit_trade', trade_id=trade.id) }}" class="btn btn-ghost">编辑</a>
+    <button class="btn btn-success" onclick="document.getElementById('completeForm').style.display='block'">标记完成</button>
+    <form class="inline-form" method="post" action="{{ url_for('remove_trade', trade_id=trade.id) }}"
+          onsubmit="return confirm('确定下架此交易？')">
+      <button type="submit" class="btn btn-warning">下架</button>
+    </form>
+    {% endif %}
+
+    {% if current_user and trade.user_id == current_user.id %}
+    <form class="inline-form" method="post" action="{{ url_for('delete_trade', trade_id=trade.id) }}"
+          onsubmit="return confirm('确定删除此交易？此操作不可恢复')">
+      <button type="submit" class="btn btn-danger">删除</button>
+    </form>
+    {% endif %}
+  </div>
+
+  <!-- 标记完成表单 -->
+  {% if current_user and trade.user_id == current_user.id and trade.status == 'listing' %}
+  <form id="completeForm" method="post" action="{{ url_for('complete_trade', trade_id=trade.id) }}"
+        style="display:none; margin-top:20px; padding:16px; background:var(--bg-input); border-radius:var(--radius);">
+    <h3 style="margin-bottom:12px;">标记为已完成</h3>
+    <div class="form-group">
+      <label>买家游戏ID（选填）</label>
+      <input type="text" name="buyer_game_id" placeholder="买家的游戏名字">
+    </div>
+    <div class="form-group">
+      <label>成交价（选填）</label>
+      <input type="text" name="deal_price" placeholder="如：200点券">
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button type="submit" class="btn btn-success btn-sm">确认完成</button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('completeForm').style.display='none'">取消</button>
+    </div>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}

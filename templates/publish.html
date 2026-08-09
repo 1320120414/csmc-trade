@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}{{ '编辑交易' if edit_mode else '发布交易' }} - {{ PLATFORM_NAME }}{% endblock %}
+{% block content %}
+<div class="form-card">
+  <h1>{{ '编辑交易' if edit_mode else '发布交易' }}</h1>
+  <form method="post" action="{{ url_for('edit_trade', trade_id=trade.id) if edit_mode else url_for('publish') }}">
+
+    <!-- 01 交易目的 -->
+    <div class="form-group">
+      <label>交易目的 <span class="req">*</span>（可多选）</label>
+      <div class="checkbox-group">
+        {% for p in PURPOSE_OPTIONS %}
+        <label>
+          <input type="checkbox" name="purpose" value="{{ p }}"
+            {{ 'checked' if edit_mode and p in trade.purpose_list() }}>
+          {{ p }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- 02 饰品名字 -->
+    <div class="form-group">
+      <label>饰品名字 <span class="req">*</span></label>
+      <input type="text" name="item_name" value="{{ trade.item_name if edit_mode else '' }}"
+             placeholder="请输入饰品全名，多普勒饰品加颜色，如：爪子刀多普勒粉" required>
+      <div class="hint">请填饰品全名，多普勒饰品加颜色，示例：爪子刀多普勒粉</div>
+    </div>
+
+    <!-- 03 是否 StatTrak -->
+    <div class="form-group">
+      <label>是否是 StatTrak™ <span class="req">*</span></label>
+      <div class="radio-group">
+        <label><input type="radio" name="stattrak" value="1" {{ 'checked' if edit_mode and trade.stattrak else '' }}> 是</label>
+        <label><input type="radio" name="stattrak" value="0" {{ 'checked' if (edit_mode and not trade.stattrak) or not edit_mode }}> 否</label>
+      </div>
+      <div class="hint">是否是暗金计数器</div>
+    </div>
+
+    <!-- 04 磨损 -->
+    <div class="form-group">
+      <label>磨损 <span class="req">*</span></label>
+      <input type="number" name="wear" value="{{ trade.wear_str() if edit_mode else '' }}"
+             placeholder="0.000001" step="0.000001" min="0" max="1" required>
+      <div class="hint">饰品磨损度，填到小数点后6位（0.000001）</div>
+    </div>
+
+    <!-- 05 市场建议售价 -->
+    <div class="form-group">
+      <label>市场建议售价 <span class="req">*</span></label>
+      <input type="number" name="market_price" value="{{ trade.market_price if edit_mode else '' }}"
+             placeholder="请输入数字" step="0.01" min="0" required>
+      <div class="hint">市场价</div>
+    </div>
+
+    <!-- 06 游戏ID（自动带出，只读展示） -->
+    <div class="form-group">
+      <label>玩家游戏ID</label>
+      <input type="text" value="{{ current_user.game_id }}" disabled>
+      <div class="hint">自动取自你的账号资料</div>
+    </div>
+
+    <!-- 07 QQ号（自动带出，只读展示） -->
+    <div class="form-group">
+      <label>QQ号</label>
+      <input type="text" value="{{ current_user.qq }}" disabled>
+      <div class="hint">自动取自你的账号资料，方便买家联系</div>
+    </div>
+
+    <!-- 08 接受的货币 -->
+    <div class="form-group">
+      <label>接受的货币 <span class="req">*</span>（可多选）</label>
+      <div class="checkbox-group">
+        {% for c in CURRENCY_OPTIONS %}
+        <label>
+          <input type="checkbox" name="currency" value="{{ c }}"
+            {{ 'checked' if edit_mode and c in trade.currency_list() }}>
+          {{ c }}
+        </label>
+        {% endfor %}
+      </div>
+      <div class="hint">点券 = 1:1 人民币；金币 = 游戏内获取</div>
+    </div>
+
+    <!-- 09 心理预期价格 -->
+    <div class="form-group">
+      <label>心理预期价格 <span class="req">*</span></label>
+      <input type="text" name="expected_price" value="{{ trade.expected_price if edit_mode else '' }}"
+             placeholder="可填写范围，如：200~250点券" required>
+      <div class="hint">可以填写范围</div>
+    </div>
+
+    <!-- 补充描述（选填） -->
+    <div class="form-group">
+      <label>补充描述（选填）</label>
+      <textarea name="description" placeholder="补充说明，如贴纸、特殊属性等">{{ trade.description if edit_mode and trade.description else '' }}</textarea>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">{{ '保存修改' if edit_mode else '发布' }}</button>
+      <a href="{{ url_for('detail', trade_id=trade.id) if edit_mode else url_for('index') }}" class="btn btn-ghost">取消</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
